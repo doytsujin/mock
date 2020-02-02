@@ -19,6 +19,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/golang/mock/gomock/internal/calldo"
 )
 
 // Call represents an expected call to a mock.
@@ -106,8 +108,19 @@ func (c *Call) MaxTimes(n int) *Call {
 // The return values from this function are returned by the mocked function.
 // It takes an interface{} argument to support n-arity functions.
 func (c *Call) DoAndReturn(f interface{}) *Call {
-	// TODO: Check arity and types here, rather than dying badly elsewhere.
 	v := reflect.ValueOf(f)
+
+	switch v.Kind() {
+	case reflect.Func:
+		mt := c.methodType
+
+		ft := v.Type()
+		if err := calldo.ValidateInputAndOutputSig(ft, mt); err != nil {
+			panic(fmt.Sprintf("DoAndReturn: %s", err))
+		}
+	default:
+		panic("DoAndReturn: argument must be a function")
+	}
 
 	c.addAction(func(args []interface{}) []interface{} {
 		vargs := make([]reflect.Value, len(args))
@@ -135,8 +148,19 @@ func (c *Call) DoAndReturn(f interface{}) *Call {
 // return values call DoAndReturn.
 // It takes an interface{} argument to support n-arity functions.
 func (c *Call) Do(f interface{}) *Call {
-	// TODO: Check arity and types here, rather than dying badly elsewhere.
 	v := reflect.ValueOf(f)
+
+	switch v.Kind() {
+	case reflect.Func:
+		mt := c.methodType
+
+		ft := v.Type()
+		if err := calldo.ValidateInputAndOutputSig(ft, mt); err != nil {
+			panic(fmt.Sprintf("Do: %s", err))
+		}
+	default:
+		panic("Do: argument must be a function")
+	}
 
 	c.addAction(func(args []interface{}) []interface{} {
 		vargs := make([]reflect.Value, len(args))
